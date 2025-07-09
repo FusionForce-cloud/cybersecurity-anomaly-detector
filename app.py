@@ -56,17 +56,32 @@ if option == "Upload CSV":
             st.download_button("⬇️ Download Result CSV", result_df.to_csv(index=False), file_name="anomaly_results.csv")
 
 elif option == "Manual Entry":
-    st.info("📝 Enter a data row below. Column names must match the expected features.")
+    st.info("Enter numerical data row below. Columns are: duration, src_bytes, dst_bytes")
+
     example_cols = ["duration", "src_bytes", "dst_bytes"]
     values = {}
     for col in example_cols:
         values[col] = st.number_input(f"{col}", value=0)
 
     if st.button("🚀 Detect Anomaly"):
-        df_manual = pd.DataFrame([values])
-        result_df = detect_anomalies(df_manual)
-        st.subheader("🚨 Anomaly Detection Result")
-        st.dataframe(result_df.style.apply(highlight_anomalies, axis=1))
+        # Example baseline dataset to compare against
+        base_df = pd.DataFrame([
+            {"duration": 1, "src_bytes": 100, "dst_bytes": 200},
+            {"duration": 2, "src_bytes": 120, "dst_bytes": 220},
+            {"duration": 1, "src_bytes": 110, "dst_bytes": 210},
+            {"duration": 3, "src_bytes": 130, "dst_bytes": 230},
+            {"duration": 2, "src_bytes": 90,  "dst_bytes": 190},
+            {"duration": 4, "src_bytes": 115, "dst_bytes": 250}
+        ])
+
+        manual_row = pd.DataFrame([values])
+        combined_df = pd.concat([base_df, manual_row], ignore_index=True)
+
+        result_df = detect_anomalies(combined_df)
+
+        st.subheader("🚨 Anomaly Detection Result (for your input)")
+        st.dataframe(result_df.tail(1).style.apply(highlight_anomalies, axis=1))
+
 
         # Optional scatter plot (works if at least 2 numeric features are entered)
         if result_df.select_dtypes(include=[np.number]).shape[1] >= 2:
