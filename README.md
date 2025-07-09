@@ -10,7 +10,7 @@ Detects anomalies in network traffic data using:
 - `cybersecurity_attacks.csv`: Input data
 - `requirements.txt`: Dependencies
 
-### APP Link: https://cybersecurity-anomaly-detector-f6nzn48nqyve76gztxpbwy.streamlit.app/
+### APP Link: https://network-anomaly-detector-nq9yhqowdgvnfpsx6pbdxe.streamlit.app/
 
 ## 🚀 Run It Locally
 
