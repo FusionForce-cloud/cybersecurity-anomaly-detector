@@ -1,70 +1,45 @@
-
-# anomaly_detection_models.py
-
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense
-from tensorflow.keras.optimizers import Adam
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+from keras.models import Sequential
+from keras.layers import Dense
 
-# Load dataset
-df = pd.read_csv("cybersecurity_attacks.csv")
+def load_data(path):
+    df = pd.read_csv(path)
+    df = df.select_dtypes(include=[np.number]).dropna()
+    return df
 
-# Drop irrelevant or high-cardinality text fields
-drop_cols = ['Timestamp', 'Source IP Address', 'Destination IP Address',
-             'Payload Data', 'Malware Indicators', 'Alerts/Warnings',
-             'Attack Signature', 'User Information', 'Device Information',
-             'Geo-location Data', 'Proxy Information', 'Firewall Logs',
-             'IDS/IPS Alerts', 'Log Source']
-df.drop(columns=drop_cols, inplace=True, errors='ignore')
+def detect_with_isolation_forest(data):
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(data)
+    model = IsolationForest(contamination=0.05, random_state=42)
+    preds = model.fit_predict(scaled_data)
+    data['anomaly'] = np.where(preds == -1, 1, 0)
+    return data
 
-# Encode categorical features
-cat_cols = df.select_dtypes(include='object').columns
-for col in cat_cols:
-    df[col] = LabelEncoder().fit_transform(df[col])
+def detect_with_autoencoder(data):
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(data)
 
-# Fill missing values
-df.fillna(-1, inplace=True)
+    x_train, x_test = train_test_split(scaled_data, test_size=0.2, random_state=42)
 
-# Normalize features
-scaler = StandardScaler()
-X = scaler.fit_transform(df.drop(columns=['Attack Type'], errors='ignore'))
+    model = Sequential([
+        Dense(32, activation='relu', input_shape=(x_train.shape[1],)),
+        Dense(16, activation='relu'),
+        Dense(8, activation='relu'),
+        Dense(16, activation='relu'),
+        Dense(32, activation='relu'),
+        Dense(x_train.shape[1], activation='linear')
+    ])
+    model.compile(optimizer='adam', loss='mse')
+    model.fit(x_train, x_train, epochs=20, batch_size=32, validation_data=(x_test, x_test), verbose=0)
 
-# --- 1. Isolation Forest ---
-iso_model = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
-iso_preds = iso_model.fit_predict(X)
-df['IsolationForest_Anomaly'] = np.where(iso_preds == -1, 'Anomaly', 'Normal')
-
-# --- 2. Autoencoder ---
-input_dim = X.shape[1]
-encoding_dim = 16
-
-input_layer = Input(shape=(input_dim,))
-encoded = Dense(64, activation='relu')(input_layer)
-encoded = Dense(encoding_dim, activation='relu')(encoded)
-decoded = Dense(64, activation='relu')(encoded)
-decoded = Dense(input_dim, activation='linear')(decoded)
-
-autoencoder = Model(inputs=input_layer, outputs=decoded)
-autoencoder.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
-
-# Train/test split
-X_train, X_test = train_test_split(X, test_size=0.2, random_state=42)
-autoencoder.fit(X_train, X_train, epochs=10, batch_size=64, shuffle=True, validation_data=(X_test, X_test), verbose=1)
-
-# Compute reconstruction error
-X_pred = autoencoder.predict(X)
-mse = np.mean(np.power(X - X_pred, 2), axis=1)
-
-threshold = np.percentile(mse, 95)
-df['Autoencoder_Anomaly'] = np.where(mse > threshold, 'Anomaly', 'Normal')
-
-# Show result counts
-print("Isolation Forest Results:")
-print(df['IsolationForest_Anomaly'].value_counts())
-
-print("\nAutoencoder Results:")
-print(df['Autoencoder_Anomaly'].value_counts())
+    preds = model.predict(scaled_data)
+    mse = np.mean(np.power(scaled_data - preds, 2), axis=1)
+    threshold = np.percentile(mse, 95)
+    anomalies = (mse > threshold).astype(int)
+    data['anomaly'] = anomalies
+    return data
