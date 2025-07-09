@@ -3,65 +3,62 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from sklearn.ensemble import IsolationForest
-from io import StringIO
 
-# -------------------- Page Config & Title --------------------
+# Page config
 st.set_page_config(page_title="Cybersecurity Anomaly Detector", layout="wide")
-st.title("🔐 Cybersecurity Anomaly Detector")
-st.markdown("Detect anomalies in network traffic using Isolation Forest.")
+st.title("🔒 Cybersecurity Anomaly Detection App")
 
-# -------------------- Sidebar Model Choice --------------------
-model_choice = st.sidebar.selectbox("Choose Anomaly Detection Model", ["Isolation Forest"])
+# Function to highlight anomalies
+def highlight_anomalies(row):
+    return [
+        'background-color: red' if row.get('Anomaly', '') == 'Anomaly' and col == 'Anomaly' else ''
+        for col in row.index
+    ]
 
-# -------------------- Function Definitions --------------------
-def detect_with_isolation_forest(df):
-    model = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
-    preds = model.fit_predict(df)
+# Function to detect anomalies using Isolation Forest
+def detect_anomalies(df):
+    df_numeric = df.select_dtypes(include=[np.number])
+    clf = IsolationForest(contamination=0.1, random_state=42)
+    preds = clf.fit_predict(df_numeric)
     df['Anomaly'] = np.where(preds == -1, 'Anomaly', 'Normal')
     return df
 
-def highlight_anomalies(df):
-    return ['background-color: red' if val == 'Anomaly' else '' for val in df['Anomaly']]
+# Upload CSV or manual entry
+option = st.radio("Select input method:", ("Upload CSV", "Manual Entry"))
 
-# -------------------- Tabs --------------------
-tab1, tab2 = st.tabs(["📝 Manual Entry", "📁 CSV Upload"])
-
-# -------------------- Manual Entry --------------------
-with tab1:
-    st.subheader("Enter Network Data Manually")
-    col1, col2 = st.columns(2)
-    with col1:
-        duration = st.number_input("Duration", min_value=0.0, value=10.0)
-        src_bytes = st.number_input("Source Bytes", min_value=0.0, value=100.0)
-    with col2:
-        dst_bytes = st.number_input("Destination Bytes", min_value=0.0, value=50.0)
-        count = st.number_input("Count", min_value=0.0, value=5.0)
-
-    if st.button("Detect Anomaly", key="manual"):
-        input_df = pd.DataFrame([[duration, src_bytes, dst_bytes, count]], 
-                                columns=['duration', 'src_bytes', 'dst_bytes', 'count'])
-        result_df = detect_with_isolation_forest(input_df.copy())
-        st.dataframe(result_df.style.apply(highlight_anomalies, axis=1))
-        fig = px.histogram(result_df, x='Anomaly', title="Anomaly Count")
-        st.plotly_chart(fig)
-
-# -------------------- CSV Upload --------------------
-with tab2:
-    st.subheader("Upload CSV File")
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+if option == "Upload CSV":
+    uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
     if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-        st.write("Preview of uploaded data:")
-        st.dataframe(df.head())
+        data = pd.read_csv(uploaded_file)
+        st.subheader("📊 Raw Data Preview")
+        st.write(data)
 
-        if st.button("Detect Anomaly", key="csv"):
-            result_df = detect_with_isolation_forest(df.copy())
-            st.subheader("Detection Results")
+        if st.button("🚀 Detect Anomalies"):
+            result_df = detect_anomalies(data)
+            st.subheader("🚨 Anomaly Detection Result")
             st.dataframe(result_df.style.apply(highlight_anomalies, axis=1))
 
-            fig = px.histogram(result_df, x='Anomaly', title="Anomaly Distribution")
-            st.plotly_chart(fig)
+            # Optional visualization
+            if 'Anomaly' in result_df.columns and result_df.select_dtypes(include=[np.number]).shape[1] >= 2:
+                numeric_cols = result_df.select_dtypes(include=[np.number]).columns.tolist()
+                fig = px.scatter(
+                    result_df,
+                    x=numeric_cols[0],
+                    y=numeric_cols[1],
+                    color='Anomaly',
+                    title="Anomaly Visualization"
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
-            # Download button
-            csv_data = result_df.to_csv(index=False).encode('utf-8')
-            st.download_button("Download Results as CSV", csv_data, "anomaly_results.csv", "text/csv")
+elif option == "Manual Entry":
+    st.info("Enter numerical data row below. Column names must match.")
+    example_cols = ["duration", "src_bytes", "dst_bytes"]
+    values = {}
+    for col in example_cols:
+        values[col] = st.number_input(f"{col}", value=0)
+
+    if st.button("🚀 Detect Anomaly"):
+        df_manual = pd.DataFrame([values])
+        result_df = detect_anomalies(df_manual)
+        st.subheader("🚨 Anomaly Detection Result")
+        st.dataframe(result_df.style.apply(highlight_anomalies, axis=1))
