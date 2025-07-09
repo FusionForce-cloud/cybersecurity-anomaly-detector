@@ -10,9 +10,10 @@ Detects anomalies in network traffic data using:
 - `cybersecurity_attacks.csv`: Input data
 - `requirements.txt`: Dependencies
 
+### APP Link: https://cybersecurity-anomaly-detector-f6nzn48nqyve76gztxpbwy.streamlit.app/
+
 ## 🚀 Run It Locally
 
-### APP Link: https://cybersecurity-anomaly-detector-f6nzn48nqyve76gztxpbwy.streamlit.app/
 ### 1. Install packages
 ```bash
 pip install -r requirements.txt
