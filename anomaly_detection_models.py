@@ -22,7 +22,7 @@ if uploaded_file is not None:
     scaled_data = scaler.fit_transform(data_numeric)
 
     # Fit Isolation Forest
-    model = IsolationForest(contamination=0.05, random_state=42)
+    model = IsolationForest(contamination=0.2, random_state=42)
     preds = model.fit_predict(scaled_data)
 
     # Add anomaly labels
