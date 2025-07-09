@@ -1,0 +1,19 @@
+
+---
+
+### 🟢 Step 4: (Optional) Deploy on Streamlit Cloud
+
+1. Go to [https://streamlit.io/cloud](https://streamlit.io/cloud)
+2. Click **"Sign in with GitHub"**
+3. Click **“New App”**
+4. Choose:
+   - **Repository**: `cybersecurity-anomaly-detector`
+   - **Branch**: `main`
+   - **Main file path**: `cybersecurity_anomaly_detector.py`
+5. Click **"Deploy"**
+
+🔗 Your app will be live in ~30 seconds!
+
+---
+
+Would you like a downloadable ZIP of all the above files to make upload easier?
