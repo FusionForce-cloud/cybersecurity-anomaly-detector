@@ -1,23 +1,37 @@
 import streamlit as st
 import pandas as pd
-from anomaly_detection_models import load_data, detect_with_isolation_forest, detect_with_autoencoder
+import numpy as np
+from sklearn.ensemble import IsolationForest
+from sklearn.preprocessing import StandardScaler
 
-st.title("🚨 Network Traffic Anomaly Detector")
-st.markdown("Using **Isolation Forest** and **Autoencoder** for unsupervised anomaly detection on network traffic data.")
+st.title("Cybersecurity Anomaly Detector - Isolation Forest")
 
-uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-if uploaded_file:
-    data = load_data(uploaded_file)
-    st.write("### Preview of Dataset", data.head())
+uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
 
-    method = st.selectbox("Choose Detection Method", ["Isolation Forest", "Autoencoder"])
-    if st.button("Run Detection"):
-        if method == "Isolation Forest":
-            result = detect_with_isolation_forest(data.copy())
-        else:
-            result = detect_with_autoencoder(data.copy())
+if uploaded_file is not None:
+    data = pd.read_csv(uploaded_file)
 
-        st.success("Anomaly Detection Completed.")
-        st.write(result.head())
+    st.subheader("Uploaded Data")
+    st.write(data.head())
 
-        st.download_button("Download Result CSV", result.to_csv(index=False), "anomaly_result.csv", "text/csv")
+    # Preprocess
+    numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
+    data_numeric = data[numeric_cols]
+    
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(data_numeric)
+
+    # Fit Isolation Forest
+    model = IsolationForest(contamination=0.05, random_state=42)
+    preds = model.fit_predict(scaled_data)
+
+    # Add anomaly labels
+    data["Anomaly"] = np.where(preds == -1, "Yes", "No")
+
+    st.subheader("Anomaly Detection Results")
+    st.write(data)
+
+    st.subheader("Anomaly Summary")
+    st.write(data["Anomaly"].value_counts())
+
+    st.download_button("Download Results as CSV", data.to_csv(index=False), "anomaly_results.csv")
