@@ -6,8 +6,8 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
 # Page config
-st.set_page_config(page_title="Cybersecurity Anomaly Detector", layout="wide")
-st.title("🔒 Cybersecurity Anomaly Detection App")
+st.set_page_config(page_title="Network Anomaly Detector", layout="wide")
+st.title("🔒 Network Anomaly Detection App")
 
 # Function to highlight anomalies
 def highlight_anomalies(row):
