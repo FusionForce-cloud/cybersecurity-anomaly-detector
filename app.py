@@ -4,34 +4,50 @@ import numpy as np
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-st.title("Cybersecurity Anomaly Detector - Isolation Forest")
+st.title("Cybersecurity Anomaly Detection")
 
-uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+# Input mode selector
+mode = st.radio("Select input method", ["Upload CSV", "Manual Entry"])
 
-if uploaded_file is not None:
-    data = pd.read_csv(uploaded_file)
+# Function to run model
+def detect_anomalies(dataframe):
+    numeric_cols = dataframe.select_dtypes(include=[np.number]).columns.tolist()
+    data = dataframe[numeric_cols].dropna()
 
-    st.subheader("Uploaded Data")
-    st.write(data.head())
-
-    # Preprocess
-    numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
-    data_numeric = data[numeric_cols]
-    
+    # Scale data
     scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(data_numeric)
+    scaled_data = scaler.fit_transform(data)
 
-    # Fit Isolation Forest
+    # Isolation Forest
     model = IsolationForest(contamination=0.05, random_state=42)
     preds = model.fit_predict(scaled_data)
+    dataframe["Anomaly"] = np.where(preds == -1, "Yes", "No")
 
-    # Add anomaly labels
-    data["Anomaly"] = np.where(preds == -1, "Yes", "No")
+    return dataframe
 
-    st.subheader("Anomaly Detection Results")
-    st.write(data)
+# Upload CSV
+if mode == "Upload CSV":
+    uploaded_file = st.file_uploader("Upload your network data", type=["csv"])
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        st.write("📄 Uploaded Data Preview", df.head())
+        result = detect_anomalies(df)
+        st.write("🚨 Anomaly Detection Results", result)
+        st.download_button("Download Results", result.to_csv(index=False), "anomaly_output.csv")
 
-    st.subheader("Anomaly Summary")
-    st.write(data["Anomaly"].value_counts())
+# Manual Entry
+else:
+    st.write("🔧 Enter feature values manually")
 
-    st.download_button("Download Results as CSV", data.to_csv(index=False), "anomaly_results.csv")
+    # Define feature names manually or dynamically
+    feature_names = ["duration", "src_bytes", "dst_bytes", "wrong_fragment", "urgent"]
+
+    # Manual input fields
+    input_data = {}
+    for feature in feature_names:
+        input_data[feature] = st.number_input(f"{feature}", value=0.0)
+
+    if st.button("Detect Anomaly"):
+        df_manual = pd.DataFrame([input_data])
+        result = detect_anomalies(df_manual)
+        st.write("🚨 Anomaly Detection Result", result)
