@@ -12,6 +12,7 @@ Detects anomalies in network traffic data using:
 
 ## 🚀 Run It Locally
 
+### APP Link: https://cybersecurity-anomaly-detector-f6nzn48nqyve76gztxpbwy.streamlit.app/
 ### 1. Install packages
 ```bash
 pip install -r requirements.txt
